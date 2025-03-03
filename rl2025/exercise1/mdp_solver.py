@@ -182,7 +182,20 @@ class PolicyIteration(MDPSolver):
         """
         V = np.zeros(self.state_dim)
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q1")
+        while True:
+            delta = 0
+            for s in range(self.state_dim):
+                v = V[s]
+                V[s] = sum(
+                    policy[s,a] * sum(
+                        self.mdp.P[s, a, s_next] * (self.mdp.R[s, a, s_next] + self.gamma * V[s_next])
+                        for s_next in range(self.state_dim)
+                    ) for a in range(self.action_dim)
+                )
+                delta = max(delta, abs(v - V[s]))
+            if delta < self.theta:
+                break
+        # raise NotImplementedError("Needed for Q1")
         return np.array(V)
 
     def _policy_improvement(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -207,7 +220,32 @@ class PolicyIteration(MDPSolver):
         policy = np.zeros([self.state_dim, self.action_dim])
         V = np.zeros([self.state_dim])
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q1")
+        while True:
+            V = self._policy_eval(policy)
+            policy_stable = True
+
+            for s in range(self.state_dim):
+                old_action = np.argmax(policy[s])
+                action_values = np.zeros(self.action_dim)
+
+                for a in range(self.action_dim):
+                    action_values[a] = sum(
+                        self.mdp.P[s,a,s_next]*(self.mdp.R[s,a,s_next] + self.gamma*V[s_next])
+                        for s_next in range(self.state_dim)
+                    )
+                
+                best_action = np.argmax(action_values)
+
+                if old_action != best_action:
+                    policy_stable = False
+
+                policy[s] = np.eye(self.action_dim)[best_action]
+            
+            if policy_stable:
+                break
+
+
+        # raise NotImplementedError("Needed for Q1")
         return policy, V
 
     def solve(self, theta: float = 1e-6) -> Tuple[np.ndarray, np.ndarray]:
