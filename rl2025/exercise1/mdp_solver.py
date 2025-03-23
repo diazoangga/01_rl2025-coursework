@@ -182,6 +182,7 @@ class PolicyIteration(MDPSolver):
         """
         V = np.zeros(self.state_dim)
         ### PUT YOUR CODE HERE ###
+<<<<<<< HEAD
         while True:
             delta = 0
             for s in range(self.state_dim):
@@ -193,6 +194,20 @@ class PolicyIteration(MDPSolver):
                     ) for a in range(self.action_dim)
                 )
                 delta = max(delta, abs(v - V[s]))
+=======
+
+        while True:
+            delta = 0
+            for s in range(len(self.mdp.states)):
+                v = V[s]
+                V[s] = sum(policy[s,a]*sum(
+                    self.mdp.P[s,a,s_next]*(self.mdp.R[s,a,s_next] + self.gamma * V[s_next])
+                    for s_next in range(len(self.mdp.states))
+                ) for a in range(len(self.mdp.actions))
+                )
+                delta = max(delta, abs(v - V[s]))
+            
+>>>>>>> master
             if delta < self.theta:
                 break
         # raise NotImplementedError("Needed for Q1")
@@ -220,6 +235,21 @@ class PolicyIteration(MDPSolver):
         policy = np.zeros([self.state_dim, self.action_dim])
         V = np.zeros([self.state_dim])
         ### PUT YOUR CODE HERE ###
+<<<<<<< HEAD
+=======
+        # for s in self.mdp.states:
+        #     q = []
+        #     for a in self.mdp.actions:
+        #         q_temp = self.mdp.R[s,a] + sum(self.mdp.P[s,a,s_next]*V[s_next]
+        #                                   for s_next in self.mdp.states)
+        #         q.append(q_temp)
+        #         policy[s] = max(q, key=q.get)
+
+
+        # # raise NotImplementedError("Needed for Q1")
+        # return policy, V
+
+>>>>>>> master
         while True:
             V = self._policy_eval(policy)
             policy_stable = True
