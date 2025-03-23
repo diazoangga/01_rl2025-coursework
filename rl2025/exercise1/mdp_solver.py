@@ -85,7 +85,7 @@ class ValueIteration(MDPSolver):
 
         # self.mdp.P is formed in [s, a, s_next]
         while True:
-            print("Value Iteration", i)
+            # print("Value Iteration", i)
             delta = 0
             for s in range(len(self.mdp.states)):
                 v = V[s]
@@ -96,8 +96,8 @@ class ValueIteration(MDPSolver):
                 delta = max(delta, abs(v - V[s]))
             
             i += 1
-            print(self.mdp.states)
-            print(V)
+            # print(self.mdp.states)
+            # print(V)
 
             if delta < theta:
                 break
@@ -135,7 +135,7 @@ class ValueIteration(MDPSolver):
             best_action = np.argmax(action_val)
             policy[s, best_action] = 1.0           
         # raise NotImplementedError("Needed for Q1")
-        print(policy)
+        # print(policy)
         return policy
 
     def solve(self, theta: float = 1e-6) -> Tuple[np.ndarray, np.ndarray]:
