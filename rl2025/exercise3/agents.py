@@ -205,22 +205,28 @@ class DQN(Agent):
 
         def epsilon_linear_decay(*args, **kwargs):
             ### PUT YOUR CODE HERE ###
-            raise(NotImplementedError)
+            decay_steps = self.exploration_fraction*max_timestep
+            epsilon_diff = self.epsilon_start - self.epsilon_min
+            self.epsilon = max(
+                self.epsilon_min, self.epsilon_start - epsilon_diff*(timestep/decay_steps)
+            )
+            # raise(NotImplementedError)
 
         def epsilon_exponential_decay(*args, **kwargs):
             ### PUT YOUR CODE HERE ###
-            raise(NotImplementedError)
+            self.epsilon = max(self.epsilon_min, self.epsilon_start*(self.epsilon_exponential_decay_factor**timestep))
+            # raise(NotImplementedError)
 
         if self.epsilon_decay_strategy == "constant":
             pass
         elif self.epsilon_decay_strategy == "linear":
             # linear decay
             ### PUT YOUR CODE HERE ###
-            self.epsilon = epsilon_linear_decay(...)
+            self.epsilon = epsilon_linear_decay(timestep, max_timestep)
         elif self.epsilon_decay_strategy == "exponential":
             # exponential decay
             ### PUT YOUR CODE HERE ###
-            self.epsilon = epsilon_exponential_decay(...)
+            self.epsilon = epsilon_exponential_decay(timestep)
         else:
             raise ValueError("epsilon_decay_strategy must be either 'constant', 'linear' or 'exponential'")
 
@@ -238,7 +244,20 @@ class DQN(Agent):
         :return (sample from self.action_space): action the agent should perform
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
+        if explore:
+            action =  self.action_space.sample()
+        else:
+            with torch.no_grad():
+                obs_tensor = torch.FloatTensor(obs).unsqueeze(0)
+                q_values = self.critics_net(obs_tensor)
+                action = q_values.argmax().item()
+
+        return action
+        
+        
+
+        # raise NotImplementedError("Needed for Q3")
+    
 
     def update(self, batch: Transition) -> Dict[str, float]:
         """Update function for DQN
@@ -253,8 +272,34 @@ class DQN(Agent):
         :return (Dict[str, float]): dictionary mapping from loss names to loss values
         """
         ### PUT YOUR CODE HERE ###
-        raise NotImplementedError("Needed for Q3")
-        q_loss = 0.0
+        # raise NotImplementedError("Needed for Q3")
+        states = batch.states.float()
+        actions = batch.states.long()
+        next_states = batch.next_states.float()
+        rewards = batch.rewards.float()
+        dones = batch.done.float()
+
+        # print(self.critics_net)
+        # print('states: ', states.shape)
+
+        q_values = self.critics_net(states)
+        # print('q_values: ', q_values.shape)
+
+        with torch.no_grad():
+            next_q_values = self.critics_target(next_states).max()
+            target_q_values = rewards + (1-dones)*self.gamma*next_q_values
+        # print('next_q_values, target_q_values: ', next_q_values.shape, target_q_values.shape)
+        # print('r, dones, next_q: ', rewards.shape, dones.shape, next_q_values.shape)
+        loss = torch.nn.MSELoss()(q_values, target_q_values)
+
+        self.critics_optim.zero_grad()
+        loss.backward()
+        self.critics_optim.step()
+        self.update_counter += 1
+        if self.update_counter % self.target_update_freq == 0:
+            self.critics_target.load_state_dict(self.critics_net.state_dict())
+
+        q_loss = loss.item()
         return {"q_loss": q_loss}
 
 

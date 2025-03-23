@@ -54,26 +54,17 @@ class Agent(ABC):
         :return (int): index of selected action
         """
         ### PUT YOUR CODE HERE ###
-        # print(obs, self.q_table[(obs, 0)])
         q_val = [self.q_table[obs, act] for act in range(self.n_acts)]
         max_q_val = max(q_val)
         best_act = [idx for idx in range(self.n_acts) if q_val[idx] == max_q_val]
-
-        # if random.uniform(0,1) < self.epsilon:
-        #     action = random.randint(0, self.n_acts - 1)
-        #     # print(action)
-        # else:
-        #     action_values = [self.q_table[(obs, a)] for a in range(self.n_acts)]
-        #     # print(action_values)
-        #     action = max(range(self.n_acts), key=lambda a: action_values[a])
-            
+        
         # raise NotImplementedError("Needed for Q2")
         ### RETURN AN ACTION HERE ###
         if random.random() < self.epsilon:
             return self.action_space.sample()
         else:
             return random.choice(best_act)
-        # return action
+        # return -1
 
     @abstractmethod
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
@@ -122,30 +113,19 @@ class QLearningAgent(Agent):
         :return (float): updated Q-value for current observation-action pair
         """
         ### PUT YOUR CODE HERE ###
-        # if not done:
-        #     # print(n_obs, obs)
-        #     best_next_action = max(self.q_table[(n_obs, a)] for a in range(self.n_acts))
-        #     td_target = reward + self.gamma*best_next_action
-        # else:
-        #     td_target = reward
-        
-        # self.q_table[obs, action] += self.alpha*(td_target - self.q_table[obs, action])
-        # # raise NotImplementedError("Needed for Q2")
-        # return self.q_table[(obs, action)]
-
         current_q = self.q_table[obs, action]
-
-        if not done:
-            max_next_q = max([self.q_table[n_obs, act] for act in range(self.n_acts)])
-        else:
-            max_next_q = 0
-
-        td_target = reward + self.gamma*max_next_q
-        td_error = td_target - current_q
         
-        self.q_table[obs, action] = current_q + (self.alpha*td_error)
+        if done:
+            max_next_q = 0
+        else:
+            max_next_q = max([self.q_table[n_obs, act] for act in range(self.n_acts)])
+        
+        # calc TD error
+        td_error = reward + (self.gamma * max_next_q) - current_q
+        self.q_table[obs, action] = current_q + (self.alpha * td_error)
+        
+        # raise NotImplementedError("Needed for Q2")
         return self.q_table[(obs, action)]
-
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Updates the hyperparameters
@@ -193,46 +173,26 @@ class MonteCarloAgent(Agent):
         """
         updated_values = {}
         ### PUT YOUR CODE HERE ###
-        G = 0
-        # returns = defaultdict(list)
-        
-        for t in reversed(range(len(obses))):
-            obs, action, reward = obses[t], actions[t], rewards[t]
-            G = self.gamma * G + reward
-            
-            if (obs, action) not in obses[:t]:  
-                if (obs, action) not in self.sa_counts:
-                    self.sa_counts[(obs, action)] = 0
-                    self.q_table[(obs, action)] = 0  # Initialize Q-value
-                    
-                self.sa_counts[(obs, action)] += 1  # Update count
-                # Update Q-value with incremental mean
-                self.q_table[(obs, action)] += (G - self.q_table[(obs, action)]) / self.sa_counts[(obs, action)]
+        for step in range(len(obses)):
+            state_actions = (obses[step], actions[step])
+
+            G = 0
+            for idx in range(len(rewards) - step):
+                G += (self.gamma**idx * rewards[step + idx])
                 
-                updated_values[(obs, action)] = self.q_table[(obs, action)]
+            if state_actions not in self.sa_counts:
+                self.sa_counts[state_actions] = 0
+            
+            self.sa_counts[state_actions] += 1
+            
+            old_q = self.q_table.get(state_actions, 0)
+            new_q = old_q + (1 / self.sa_counts[state_actions]) * (G - old_q)
+            
+            self.q_table[state_actions] = new_q
+            updated_values[state_actions] = new_q            
+            
         # raise NotImplementedError("Needed for Q2")
         return updated_values
-
-        # for step in range(len(obses)):
-        #     state_actions = (obses[step], actions[step])
-
-        #     G = 0
-        #     for idx in range(len(rewards) - step):
-        #         G += (self.gamma**idx * rewards[step + idx])
-                
-        #     if state_actions not in self.sa_counts:
-        #         self.sa_counts[state_actions] = 0
-            
-        #     self.sa_counts[state_actions] += 1
-            
-        #     old_q = self.q_table.get(state_actions, 0)
-        #     new_q = old_q + (1 / self.sa_counts[state_actions]) * (G - old_q)
-            
-        #     self.q_table[state_actions] = new_q
-        #     updated_values[state_actions] = new_q            
-            
-        # # raise NotImplementedError("Needed for Q2")
-        # return updated_values
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Updates the hyperparameters
